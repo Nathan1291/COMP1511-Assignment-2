@@ -90,6 +90,13 @@ struct carriage *create_carriage(
     int capacity
 );
 
+int carriage_error_check(
+    struct carriage *train,
+    char id[6],
+    int capacity,
+    enum carriage_type type
+);
+
 void append_carriage(
     struct carriage **train, 
     struct carriage **last_carriage
@@ -172,6 +179,50 @@ struct carriage *create_carriage(
     return new_carriage; 
 }
 
+// Stage 1.5, checks for errors when appending new carriages
+int carriage_error_check(
+    struct carriage *train,
+    char id[6],
+    int capacity,
+    enum carriage_type type
+) {
+    // originally has no errors
+    int has_error = 0;
+    
+    // error check for correct type
+    if (type == INVALID_TYPE) {
+        has_error = 1;
+        printf("ERROR: Invalid carriage type\n");
+    }
+    // error check for valid capacity
+    else if (capacity > 999 || capacity <= 0) {
+        has_error = 1;
+        printf("ERROR: Capacity should be between 1 and 999\n");
+    }
+    // error check for overlapping ids
+    else {
+        // iterating through the linked list using a temporary pointer
+        struct carriage *temp = train;
+        while (temp != NULL) {
+            // Comparing each value to see if they are a different ID
+            // diff_ids stays 0 if they are not different IDs, since it always fails the check
+            int diff_ids = 0;
+            for (int i = 0; i < ID_SIZE; i++) {
+                if (temp->carriage_id[i] != id[i]) {
+                    diff_ids = 1;
+                }
+            }
+            // printing the error message if they are not different IDs
+            if (!diff_ids) {
+                has_error = 1;
+                printf("ERROR: a carriage with id: '%s' already exists in this train\n", id);
+            }
+            temp = temp->next;
+        }
+    }
+    return has_error;
+}
+
 // Stage 1.3, appends a new train at the end of the linked list
 void append_carriage(
     struct carriage **train, 
@@ -184,25 +235,29 @@ void append_carriage(
     int capacity;
     scanf("%d", &capacity);
 
-    // Creating the new carriage struct
-    struct carriage *new_carriage = create_carriage(carriage_id, type, capacity);
-    new_carriage->next = NULL;
+    int has_error = carriage_error_check(*train, carriage_id, capacity, type);
 
-    // if the list is empty then make the head point to the new carriage
-    // and make the end point to the new carriage as well
-    if (*train == NULL) {
-        *train = new_carriage;
-        *last_carriage = new_carriage;
-    }
-    // if the list isnt empty, we change the last carraige to point to the new carriage
-    // we dereference the last carriage pointer, change the next value then make last carraige the new carriage
-    else {
-        struct carriage *temp = *last_carriage;
-        temp->next = new_carriage;
-        *last_carriage = new_carriage;
-    }
+    // if there is no errors, add the carriage onto the train
+    if (!has_error) {
+        // Creating the new carriage struct
+        struct carriage *new_carriage = create_carriage(carriage_id, type, capacity);
+        new_carriage->next = NULL;
 
-    printf("Carriage: '%s' attached!\n", carriage_id);
+        // if the list is empty then make the head point to the new carriage
+        // and make the end point to the new carriage as well
+        if (*train == NULL) {
+            *train = new_carriage;
+            *last_carriage = new_carriage;
+        }
+        // if the list isnt empty, we change the last carraige to point to the new carriage
+        // we dereference the last carriage pointer, change the next value then make last carraige the new carriage
+        else {
+            struct carriage *temp = *last_carriage;
+            temp->next = new_carriage;
+            *last_carriage = new_carriage;
+        }
+        printf("Carriage: '%s' attached!\n", carriage_id);
+    }
 }
 
 
