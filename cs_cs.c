@@ -1,6 +1,6 @@
 // Program name
 //
-// This program was written by [your name] (z5555555)
+// This program was written by Nathan Lue (z5477755)
 // on [date]
 //
 // TODO: Description of program
@@ -90,6 +90,11 @@ struct carriage *create_carriage(
     int capacity
 );
 
+int check_same_ids(
+    char c_id[ID_SIZE],
+    char id[ID_SIZE]
+);
+
 int carriage_error_check(
     struct carriage *train,
     char id[6],
@@ -99,11 +104,18 @@ int carriage_error_check(
 
 void append_carriage(
     struct carriage **train, 
-    struct carriage **last_carriage
+    struct carriage **last_carriage,
+    int *size
 );
 
 void print_train(
     struct carriage *train
+);
+
+void insert_carriage(
+    struct carriage **train, 
+    struct carriage **last_carriage,
+    int *size
 );
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -122,6 +134,8 @@ int main(void) {
     struct carriage *train = NULL;
     // Keeps a tracker of the tail of the list in order to save time
     struct carriage *last_carriage = NULL;
+    // Keeps a track of the size of the linked list
+    int size = 0;
     // initialises the command variable to store hte values for the command loop
     char command;
     printf("Enter command: ");
@@ -134,11 +148,15 @@ int main(void) {
         }
         // Stage 1.3: Logic for appending a carriage to the train
         if (command == 'a') {
-            append_carriage(&train, &last_carriage);
+            append_carriage(&train, &last_carriage, &size);
         }
         // Stage 1.4: Logic for printing the whole train
         if (command == 'p') {
             print_train(train);
+        }
+        // Stage 2.1: Logic for inserting carriages
+        if (command == 'i') {
+            insert_carriage(&train, &last_carriage, &size);
         }   
 
         printf("Enter command: ");
@@ -179,10 +197,25 @@ struct carriage *create_carriage(
     return new_carriage; 
 }
 
+// Stage 1.5, function to check if the ids are the same,
+// Had to make this to pass styling guide
+int check_same_ids(
+    char c_id[ID_SIZE],
+    char id[ID_SIZE]
+) {
+    int diff_ids = 0;
+    for (int i = 0; i < ID_SIZE; i++) {
+        if (c_id[i] != id[i]) {
+            diff_ids = 1;
+        }
+    }
+    return diff_ids;
+}
+
 // Stage 1.5, checks for errors when appending new carriages
 int carriage_error_check(
     struct carriage *train,
-    char id[6],
+    char id[ID_SIZE],
     int capacity,
     enum carriage_type type
 ) {
@@ -205,17 +238,15 @@ int carriage_error_check(
         struct carriage *temp = train;
         while (temp != NULL) {
             // Comparing each value to see if they are a different ID
-            // diff_ids stays 0 if they are not different IDs, since it always fails the check
-            int diff_ids = 0;
-            for (int i = 0; i < ID_SIZE; i++) {
-                if (temp->carriage_id[i] != id[i]) {
-                    diff_ids = 1;
-                }
-            }
+            // diff_ids stays 0 if they are not different IDs
+            // since it always fails the check
+            int diff_ids = check_same_ids(temp->carriage_id, id);
+
             // printing the error message if they are not different IDs
             if (!diff_ids) {
                 has_error = 1;
-                printf("ERROR: a carriage with id: '%s' already exists in this train\n", id);
+                printf("ERROR: a carriage with id: '%s' already exists in this train\n", 
+                        id);
             }
             temp = temp->next;
         }
@@ -226,7 +257,8 @@ int carriage_error_check(
 // Stage 1.3, appends a new train at the end of the linked list
 void append_carriage(
     struct carriage **train, 
-    struct carriage **last_carriage
+    struct carriage **last_carriage,
+    int *size
 ) {
     // scanning in all the required data
     char carriage_id[6];
@@ -249,13 +281,15 @@ void append_carriage(
             *train = new_carriage;
             *last_carriage = new_carriage;
         }
-        // if the list isnt empty, we change the last carraige to point to the new carriage
-        // we dereference the last carriage pointer, change the next value then make last carraige the new carriage
+        // if the list isnt empty, change the last carraige to point to the new carriage
+        // we dereference the last carriage pointer &
+        // change the next value then make last carraige the new carriage
         else {
             struct carriage *temp = *last_carriage;
             temp->next = new_carriage;
             *last_carriage = new_carriage;
         }
+        *size += 1;
         printf("Carriage: '%s' attached!\n", carriage_id);
     }
 }
@@ -275,7 +309,72 @@ void print_train(
     }
 }
 
+// Stage 2.1, inserting a carriage in the given integer position
+void insert_carriage(
+    struct carriage **train, 
+    struct carriage **last_carriage,
+    int *size
+) {
+    // Scanning all dependencies
+    int n;
+    scanf("%d", &n);
+    char carriage_id[6];
+    scan_id(carriage_id);
+    enum carriage_type type = scan_type();
+    int capacity;
+    scanf("%d", &capacity);
 
+    int has_error;
+    // Error check just in case n is not valid
+    if (n < 0) {
+        has_error = 1;
+        printf("ERROR: n must be at least 0\n");
+    }
+    // Error check just like append_carriages
+    else {
+        has_error = carriage_error_check(*train, carriage_id, capacity, type);
+    }
+    
+    // if there is no errors, inser the carriage
+    if (!has_error) {
+        // Creating the new carriage struct
+        struct carriage *new_carriage = create_carriage(carriage_id, type, capacity);
+        // Case where n is the start of the carriage
+        if (*size == 0) {
+            *train = new_carriage;
+            *last_carriage = new_carriage;
+            *size += 1;
+        }
+        else if (n == 0) {
+            new_carriage->next = *train;
+            *train = new_carriage;
+            *size += 1;
+        }
+        // Case where we need to append it to the end
+        else if (n >= *size) {
+            struct carriage *temp = *last_carriage;
+            if (temp == NULL) {
+            }   
+            temp->next = new_carriage;
+            *last_carriage = new_carriage;
+            *size += 1;
+        }
+
+        // Case where we need to insert it to some position      
+        else {
+            struct carriage *temp = *train;
+
+            for (int i = 0; i < n-1; i++) {
+                temp = temp->next;
+            }
+
+            new_carriage->next = temp->next;
+            temp->next = new_carriage;
+            *size += 1;
+        }
+        printf("Carriage: '%s' inserted!\n", carriage_id);
+    }
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
