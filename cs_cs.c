@@ -129,6 +129,10 @@ int main(void) {
         if (command == 'a') {
             append_carriage(&train, &last_carriage);
         }
+        // Stage 1.4: Logic for printing the whole train
+        if (command == 'p') {
+            print_train(train);
+        }   
 
         printf("Enter command: ");
     }
@@ -201,6 +205,20 @@ void append_carriage(
     printf("Carriage: '%s' attached!\n", carriage_id);
 }
 
+
+// Stage 1.4, prints the linked list of train 
+void print_train(
+    struct carriage *train
+) {
+    struct carriage *temp = train;
+    if (temp == NULL) {
+        printf("This train is empty!\n");
+    }
+    while (temp != NULL) {
+        print_carriage(temp);
+        temp = temp->next;
+    }
+}
 
 
 
