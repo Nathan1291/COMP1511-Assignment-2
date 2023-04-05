@@ -90,8 +90,14 @@ struct carriage *create_carriage(
     int capacity
 );
 
+void append_carriage(
+    struct carriage **train, 
+    struct carriage **last_carriage
+);
 
-
+void print_train(
+    struct carriage *train
+);
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -105,15 +111,23 @@ int main(void) {
     printf("Welcome to Carriage Simulator\n");
     printf("All aboard!\n");
 
+    // Initialises the head of the linked list, called train
+    struct carriage *train = NULL;
+    // Keeps a tracker of the tail of the list in order to save time
+    struct carriage *last_carriage = NULL;
     // initialises the command variable to store hte values for the command loop
     char command;
     printf("Enter command: ");
 
     // Beginning the command loop
     while (scanf(" %c", &command) != EOF) {
-        // Logic for the help command
+        // Stage 1.2: Logic for the help command
         if (command == '?') {
             print_usage();
+        }
+        // Stage 1.3: Logic for appending a carriage to the train
+        if (command == 'a') {
+            append_carriage(&train, &last_carriage);
         }
 
         printf("Enter command: ");
@@ -154,9 +168,38 @@ struct carriage *create_carriage(
     return new_carriage; 
 }
 
+// Stage 1.3, appends a new train at the end of the linked list
+void append_carriage(
+    struct carriage **train, 
+    struct carriage **last_carriage
+) {
+    // scanning in all the required data
+    char carriage_id[6];
+    scan_id(carriage_id);
+    enum carriage_type type = scan_type();
+    int capacity;
+    scanf("%d", &capacity);
 
+    // Creating the new carriage struct
+    struct carriage *new_carriage = create_carriage(carriage_id, type, capacity);
+    new_carriage->next = NULL;
 
+    // if the list is empty then make the head point to the new carriage
+    // and make the end point to the new carriage as well
+    if (*train == NULL) {
+        *train = new_carriage;
+        *last_carriage = new_carriage;
+    }
+    // if the list isnt empty, we change the last carraige to point to the new carriage
+    // we dereference the last carriage pointer, change the next value then make last carraige the new carriage
+    else {
+        struct carriage *temp = *last_carriage;
+        temp->next = new_carriage;
+        *last_carriage = new_carriage;
+    }
 
+    printf("Carriage: '%s' attached!\n", carriage_id);
+}
 
 
 
