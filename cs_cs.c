@@ -105,18 +105,18 @@ int main(void) {
     printf("Welcome to Carriage Simulator\n");
     printf("All aboard!\n");
 
-    // TODO: Start stage 1.2 here!
-    struct carriage *test_carriage = create_carriage("N1001", PASSENGER, 20);
+    // initialises the command variable to store hte values for the command loop
+    char command;
+    printf("Enter command: ");
 
-    // print out all it's fields.
-    printf("carriage_id: %s\n", test_carriage->carriage_id);
-    printf("capacity: %d\n", test_carriage->capacity);
-    printf("occupancy: %d\n", test_carriage->occupancy);
-    printf("next field: %p\n", test_carriage->next);
-    if (test_carriage->type == PASSENGER) {
-        printf("type: passenger\n");
-    } else {
-        printf("not a passenger carriage\n");
+    // Beginning the command loop
+    while (scanf(" %c", &command) != EOF) {
+        // Logic for the help command
+        if (command == '?') {
+            print_usage();
+        }
+
+        printf("Enter command: ");
     }
 
     printf("\nGoodbye\n");
@@ -143,8 +143,9 @@ struct carriage *create_carriage(
     struct carriage *new_carriage = malloc(sizeof(struct carriage));
     
     for (int i = 0; i < ID_SIZE; i++) {
-	    new_carriage->carriage_id[i] = id[i];
+        new_carriage->carriage_id[i] = id[i];
     }
+
     new_carriage->type = type;
     new_carriage->capacity = capacity;    
     new_carriage->occupancy = 0;
