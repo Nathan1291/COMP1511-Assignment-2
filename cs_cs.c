@@ -134,6 +134,10 @@ void count_passengers(
     struct carriage *train 
 );
 
+void move_passengers(
+    struct carriage *train 
+);
+
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -191,7 +195,10 @@ int main(void) {
         if (command == 'c') {
             count_passengers(train);
         }
-
+        // Stage 2.5: Logic for moving passengers
+        if (command == 'm') {
+            move_passengers(train);
+        }
 
         printf("Enter command: ");
     }
@@ -582,7 +589,7 @@ void count_all_passengers(
 }
 
 
-// Stage 2.4, counnts all the passengers and unoccupied spots in a given range
+// Stage 2.4, counts all the passengers and unoccupied spots in a given range
 void count_passengers(
     struct carriage *train 
 ) {
@@ -654,7 +661,139 @@ void count_passengers(
     }
 }
 
+// Stage 2.5, moves passengers between carriages, determined by moving a
+// given amount of passengers from one source carriage to another, with overflow
+// if there are unseated passengers, do not perform the movement
+void move_passengers(
+    struct carriage *train 
+) {
+    // scanning in all dependencies
+    char source_id[6];
+    scan_id(source_id);    
+    char dest_id[6];
+    scan_id(dest_id);
+    int num_to_move;
+    scanf("%d", &num_to_move);
+    
+    
+    struct carriage *temp = train;
 
+    // error check for a valid n value
+    int has_error = 0;
+    if (num_to_move <= 0) {
+        has_error = 1;
+        printf("ERROR: n must be a positive integer\n");
+    }
+
+    // initialising variables to check if the source car or destination car
+    // is found within the given linked list
+    int source_car_exists = 0;
+    int dest_car_exists = 0;
+
+    int seats_available = 0;
+
+    // going through the linked list mainly for error checking
+    while (temp != NULL && !has_error) {
+        // Checking if the current car is the same as the source or destination car
+        int diff_source_ids = check_same_ids(temp->carriage_id, source_id);
+        int diff_dest_ids = check_same_ids(temp->carriage_id, dest_id);
+
+        // if the source carriage is found
+        if (!diff_source_ids) {
+            // if the number of passengers to move is greater than occupancy
+            if (num_to_move > temp->occupancy) {
+                has_error = 1;
+                printf("ERROR: Cannot remove %d passengers from %s\n",
+                       num_to_move,
+                       source_id);
+            }
+            source_car_exists = 1;
+        }
+
+        // if the destination carriage is found
+        if (!diff_dest_ids) {
+            dest_car_exists = 1;
+        }
+
+        // counting the number of available seats from the destination car 
+        // to see if we have any unseated passengers
+        if (dest_car_exists) {
+            seats_available += temp->capacity - temp->occupancy;
+        }
+        temp = temp->next;
+    }
+    // error check if the source car is not found
+    if (!source_car_exists && !has_error) {
+        printf("ERROR: No carriage exists with id: '%s'\n",
+               source_id
+        );
+        has_error = 1;
+    }
+    // error check if the destination car is not found
+    if (!dest_car_exists && !has_error) {
+        printf("ERROR: No carriage exists with id: '%s'\n",
+               dest_id
+        );
+        has_error = 1;
+    }
+    // error check if there are not enough seats for the passengers 
+    if (num_to_move > seats_available && !has_error) {
+        printf("ERROR: not enough space to move passengers\n");
+        has_error = 1;
+    }
+
+    temp = train;
+    // variable used to see if it is in range to have passengers added
+    int in_range = 0;
+    // variable to keep track of the number of passengers we have left to add
+    // so that we keep the num_to_move variable untouched
+    int passengers_left_to_add = num_to_move;
+    // if there are no errors, execute the movement of the passengers
+    while (temp != NULL && !has_error) {
+        int diff_source_ids = check_same_ids(temp->carriage_id, source_id);
+        int diff_dest_ids = check_same_ids(temp->carriage_id, dest_id);
+
+        // if the source carriage is found
+        if (!diff_source_ids) {
+            temp->occupancy -= num_to_move;
+        }
+        // if the destination carriage is found, set in_range to 1 so we start adding
+        if (!diff_dest_ids) {
+            in_range = 1;
+        }
+
+        if (in_range && passengers_left_to_add > 0) {
+            // if the carriage is already full, do nothing and go to next carriage
+            if (temp->capacity == temp->occupancy) {
+                // deliberately empty
+            }
+            // if the vacancy in the carriage isnt enough to accomodate 
+            // all the passengers we have to move
+            else if (passengers_left_to_add > temp->capacity - temp->occupancy) {
+                printf("%d passengers moved from %s to %s\n",
+                       temp->capacity-temp->occupancy,
+                       source_id,
+                       temp->carriage_id
+                );
+                passengers_left_to_add -= temp->capacity - temp->occupancy;
+                temp->occupancy = temp->capacity;
+            }
+            // if the vacancy is enough for all the remaining passengers
+            // add them to the current carriage
+            else {
+                printf("%d passengers moved from %s to %s\n",
+                       passengers_left_to_add,
+                       source_id,
+                       temp->carriage_id
+
+                );
+                temp->occupancy += passengers_left_to_add;
+                passengers_left_to_add = 0;
+            }
+        }
+        temp = temp->next;
+    }
+}
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////  PROVIDED FUNCTIONS  ///////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
