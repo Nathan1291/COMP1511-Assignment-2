@@ -126,6 +126,14 @@ void remove_passengers(
     struct carriage *train 
 );
 
+void count_all_passengers(
+    struct carriage *train 
+);
+
+void count_passengers(
+    struct carriage *train 
+);
+
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -174,6 +182,17 @@ int main(void) {
         if (command == 'd') {
             remove_passengers(train);
         }
+        // Stage 2.4: Logic for counting all passengers
+        if (command == 'T') {
+            count_all_passengers(train);
+        }
+
+        // Stage 2.4: Logic for counting passengers in a given range 
+        if (command == 'c') {
+            count_passengers(train);
+        }
+
+
         printf("Enter command: ");
     }
 
@@ -508,6 +527,7 @@ void remove_passengers(
         has_error = 1;
         printf("ERROR: n must be a positive integer\n");
     }
+
     while (temp != NULL && !has_error) {
         int diff_ids = check_same_ids(temp->carriage_id, id);
         // if the carriage with the given id is found
@@ -537,6 +557,104 @@ void remove_passengers(
         printf("ERROR: No carriage exists with id: '%s'\n", id);
     }
 }
+
+// Stage 2.4, counts all the passengers and unoccupied spots
+void count_all_passengers(
+    struct carriage *train 
+) {
+    // initialising variables
+    int total_passengers = 0;
+    int total_unoccupied = 0;
+
+    struct carriage *temp = train;
+
+    // going through the list and adding the values as we go along
+    while (temp != NULL) {
+        total_passengers += temp->occupancy;
+        total_unoccupied += temp->capacity - temp->occupancy;
+
+        temp = temp->next;
+    }
+
+    // printing the results
+    printf("Total occupancy: %d\n", total_passengers);
+    printf("Unoccupied capacity: %d\n", total_unoccupied);
+}
+
+
+// Stage 2.4, counnts all the passengers and unoccupied spots in a given range
+void count_passengers(
+    struct carriage *train 
+) {
+    // Scanning in all dependencies
+    char start_id[6];
+    scan_id(start_id);    
+    char end_id[6];
+    scan_id(end_id);
+
+    // initialising variables to use later on
+    int passengers = 0;
+    int unoccupied = 0;
+
+    struct carriage *temp = train;
+    
+    // variable to check if the carriage is within the given range
+    // 0 if not, 1 if yes
+    int in_range = 0;
+    
+    // variable to check if the start and end carriages are in the wrong order
+    int wrong_order = 0;
+
+    while (temp != NULL) {
+        // checking if the current carriage is the end or the start carriage
+        int diff_start_ids = check_same_ids(temp->carriage_id, start_id);
+        int diff_end_ids = check_same_ids(temp->carriage_id, end_id);
+
+        // if the start carriage is found
+        if (!diff_start_ids) {
+            in_range = 1;
+        }
+        // the carriage is within the given range
+        if (in_range) {
+            passengers += temp->occupancy;
+            unoccupied += temp->capacity - temp->occupancy;
+        }
+        // if the end carriage is found
+        if (!diff_end_ids) {
+            // if the end carriage is found before the start carriage
+            if (in_range == 0) {
+                wrong_order = 1;
+            }
+            // close out end range so we dont read anymore values
+            in_range = 0;
+        }
+        temp = temp->next;
+    }
+
+    // Error handing for when the start carriage is found
+    // after the end carriage
+    if (wrong_order) {
+        printf("ERROR: Carriages are in the wrong order\n");
+    }
+    // Case where the start carriage was not found
+    // Logic: if in range is 0, but nothing was added, then we know
+    // that the start value was not found
+    else if (!in_range && passengers == 0 && unoccupied == 0) {
+        printf("ERROR: No carriage exists with id: '%s'\n", start_id);
+    }
+    // Case where the end carriage was not found
+    // Logic: if in range is still 1 then we know that the end carriage was not found
+    else if (in_range) {
+        printf("ERROR: No carriage exists with id: '%s'\n", end_id);
+    }
+    // print the result if there are no errors
+    else {
+        printf("Occupancy: %d\n", passengers);
+        printf("Unoccupied: %d\n", unoccupied);
+    }
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////  PROVIDED FUNCTIONS  ///////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
