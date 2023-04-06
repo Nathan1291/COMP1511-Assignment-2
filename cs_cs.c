@@ -122,6 +122,10 @@ void add_passenger(
     struct carriage *train 
 );
 
+void remove_passengers(
+    struct carriage *train 
+);
+
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -166,7 +170,10 @@ int main(void) {
         if (command == 's') {
             add_passenger(train);
         }
-
+        // Stage 2.3: Logic for removing passengers
+        if (command == 'd') {
+            remove_passengers(train);
+        }
         printf("Enter command: ");
     }
 
@@ -384,6 +391,9 @@ void insert_carriage(
     }
 }
 
+// Stage 2.2, adding passengers to the carriages of the train
+// if the passengers are greater than the capacity, overflow the passengers
+// to the next carriage of the train
 void add_passenger(
     struct carriage *train 
 ) {
@@ -395,12 +405,12 @@ void add_passenger(
 
     struct carriage *temp = train;
 
+    // error check for a valid n value
     int has_error = 0;
     if (num_passengers <= 0) {
         has_error = 1;
         printf("ERROR: n must be a positive integer\n");
     }
-
 
     // tracker to see if we have found the carriage with the id or not
     // used to create the logic for the olverflow
@@ -415,6 +425,7 @@ void add_passenger(
             if (temp->capacity == temp->occupancy) {
                 // deliberately empty
             }
+            // if the carriage is not empty and there is enough space for all passengers
             else if (temp->capacity - temp->occupancy >= num_passengers) {
                 temp->occupancy += num_passengers;
                 printf("%d passengers added to %s\n", 
@@ -464,15 +475,68 @@ void add_passenger(
         }
         temp = temp->next;
     }
-
+    // Error check for the carriage not being found
     if (carriage_found == 0 && !has_error) {
         printf("ERROR: No carriage exists with id: '%s'\n", id);
     }
+    // Case where all passengers could not be seated properly
     else if (num_passengers > 0) {
         printf("%d passengers could not be seated\n", num_passengers);
     }
 }
 
+// Stage 2.3, remove a given amount of passengers from a carriage
+void remove_passengers(
+    struct carriage *train 
+) {
+    // scanning in all dependencies
+    char id[6];
+    scan_id(id);
+    int num_passengers;
+    scanf("%d", &num_passengers);
+
+    struct carriage *temp = train;
+
+    // initialising variables to track if we have found the carriage
+    // this prepares an error message
+    int carriage_found = 0;
+
+    
+    // error check for a valid n value
+    int has_error = 0;
+    if (num_passengers <= 0) {
+        has_error = 1;
+        printf("ERROR: n must be a positive integer\n");
+    }
+    while (temp != NULL && !has_error) {
+        int diff_ids = check_same_ids(temp->carriage_id, id);
+        // if the carriage with the given id is found
+        if (!diff_ids) {
+            // if the number of passengers removed is greater
+            // than the occupancy
+            if (num_passengers > temp->occupancy) {
+                printf("ERROR: Cannot remove %d passengers from %s\n",
+                       num_passengers,
+                       temp->carriage_id
+                );
+            }
+            // if the number of passengers removed is valid
+            else {
+                temp->occupancy -= num_passengers;
+                printf("%d passengers removed from %s\n",
+                       num_passengers,
+                       temp->carriage_id
+                );
+            }
+            carriage_found = 1;
+        }
+        temp = temp->next;
+    }
+    // Error handling if the carriage is not found
+    if (!carriage_found && !has_error) {
+        printf("ERROR: No carriage exists with id: '%s'\n", id);
+    }
+}
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////  PROVIDED FUNCTIONS  ///////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
