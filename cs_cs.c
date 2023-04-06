@@ -118,6 +118,10 @@ void insert_carriage(
     int *size
 );
 
+void add_passenger(
+    struct carriage *train 
+);
+
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -157,7 +161,11 @@ int main(void) {
         // Stage 2.1: Logic for inserting carriages
         if (command == 'i') {
             insert_carriage(&train, &last_carriage, &size);
-        }   
+        }
+        // Stage 2.2: Logic for adding passengers
+        if (command == 's') {
+            add_passenger(train);
+        }
 
         printf("Enter command: ");
     }
@@ -316,8 +324,8 @@ void insert_carriage(
     int *size
 ) {
     // Scanning all dependencies
-    int n;
-    scanf("%d", &n);
+    int carriage_pos;
+    scanf("%d", &carriage_pos);
     char carriage_id[6];
     scan_id(carriage_id);
     enum carriage_type type = scan_type();
@@ -326,7 +334,7 @@ void insert_carriage(
 
     int has_error;
     // Error check just in case n is not valid
-    if (n < 0) {
+    if (carriage_pos < 0) {
         has_error = 1;
         printf("ERROR: n must be at least 0\n");
     }
@@ -339,19 +347,20 @@ void insert_carriage(
     if (!has_error) {
         // Creating the new carriage struct
         struct carriage *new_carriage = create_carriage(carriage_id, type, capacity);
-        // Case where n is the start of the carriage
+        // Case where there isnt a carriage existing
         if (*size == 0) {
             *train = new_carriage;
             *last_carriage = new_carriage;
             *size += 1;
         }
-        else if (n == 0) {
+        // case where we insert it at the head
+        else if (carriage_pos == 0) {
             new_carriage->next = *train;
             *train = new_carriage;
             *size += 1;
         }
         // Case where we need to append it to the end
-        else if (n >= *size) {
+        else if (carriage_pos >= *size) {
             struct carriage *temp = *last_carriage;
             if (temp == NULL) {
             }   
@@ -359,12 +368,11 @@ void insert_carriage(
             *last_carriage = new_carriage;
             *size += 1;
         }
-
         // Case where we need to insert it to some position      
         else {
             struct carriage *temp = *train;
 
-            for (int i = 0; i < n-1; i++) {
+            for (int i = 0; i < carriage_pos-1; i++) {
                 temp = temp->next;
             }
 
@@ -376,6 +384,94 @@ void insert_carriage(
     }
 }
 
+void add_passenger(
+    struct carriage *train 
+) {
+    // scanning all the dependencies
+    char id[6];
+    scan_id(id);
+    int num_passengers;
+    scanf("%d", &num_passengers);
+
+    struct carriage *temp = train;
+
+    int has_error = 0;
+    if (num_passengers <= 0) {
+        has_error = 1;
+        printf("ERROR: n must be a positive integer\n");
+    }
+
+
+    // tracker to see if we have found the carriage with the id or not
+    // used to create the logic for the olverflow
+    int carriage_found = 0;
+
+    while (temp != NULL && num_passengers != 0 && !has_error) {
+        int diff_ids = check_same_ids(temp->carriage_id, id);
+        
+        // if the carriage with the id is already found and we need to do a overflow
+        if (carriage_found && num_passengers != 0) {
+            // if the carriage is already full, do nothing and go to the next carriage
+            if (temp->capacity == temp->occupancy) {
+                // deliberately empty
+            }
+            else if (temp->capacity - temp->occupancy >= num_passengers) {
+                temp->occupancy += num_passengers;
+                printf("%d passengers added to %s\n", 
+                       num_passengers, 
+                       temp->carriage_id
+                );
+                num_passengers = 0;
+            }
+            // if there isn't enough space for all the passengers
+            // use up all available passengers then reduce waiting passengers
+            else if (temp->capacity - temp->occupancy < num_passengers) {
+                num_passengers -= temp->capacity - temp->occupancy;
+                printf("%d passengers added to %s\n", 
+                       temp->capacity - temp->occupancy, 
+                       temp->carriage_id
+            );
+                temp->occupancy = temp->capacity;
+            }
+        }
+
+        // If the carriage with the id is first found, then add the passengers
+        if (!diff_ids) {
+            carriage_found = 1;
+            // if the carriage is already full, do nothing and go to the next carriage
+            if (temp->capacity == temp->occupancy) {
+                // deliberately empty
+            }
+            // if there is enough space for all the passengers
+            else if (temp->capacity - temp->occupancy >= num_passengers) {
+                temp->occupancy += num_passengers;
+                printf("%d passengers added to %s\n", 
+                       num_passengers, 
+                       temp->carriage_id
+                );
+                num_passengers = 0;
+            }
+            // if there isn't enough space for all the passengers
+            // use up all available passengers then reduce waiting passengers
+            else if (temp->capacity - temp->occupancy < num_passengers) {
+                num_passengers -= temp->capacity - temp->occupancy;
+                printf("%d passengers added to %s\n", 
+                       temp->capacity - temp->occupancy, 
+                       temp->carriage_id
+                );
+                temp->occupancy = temp->capacity;
+            }
+        }
+        temp = temp->next;
+    }
+
+    if (carriage_found == 0 && !has_error) {
+        printf("ERROR: No carriage exists with id: '%s'\n", id);
+    }
+    else if (num_passengers > 0) {
+        printf("%d passengers could not be seated\n", num_passengers);
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////  PROVIDED FUNCTIONS  ///////////////////////////////
