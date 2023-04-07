@@ -25,7 +25,8 @@
 enum carriage_type {INVALID_TYPE, PASSENGER, BUFFET, RESTROOM, FIRST_CLASS};
 
 // TODO: Your #defines/enums can go here:
-
+#define TRUE 1
+#define FALSE 0
 
 
 
@@ -115,7 +116,7 @@ void append_carriage(
     int *size
 );
 
-void print_train(
+void print_current_train(
     struct carriage *train
 );
 
@@ -159,6 +160,11 @@ void select_prev_train(
     struct train **selected
 );
 
+void print_all_train(
+    struct train *trains_head,
+    struct train *selected
+);
+
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -172,7 +178,7 @@ int main(void) {
     trains_head->carriages = NULL;
     trains_head->last_carriage = NULL;
     trains_head->size = 0;
-    trains_head->next = 0;
+    trains_head->next = NULL;
 
     struct train *selected = trains_head;
 
@@ -192,7 +198,7 @@ int main(void) {
         }
         // Stage 1.4: Logic for printing the whole train
         if (command == 'p') {
-            print_train(selected->carriages);
+            print_current_train(selected->carriages);
         }
         // Stage 2.1: Logic for inserting carriages
         if (command == 'i') {
@@ -229,6 +235,10 @@ int main(void) {
         // Stage 3.1: Logic for selecting the next train
         if (command == '<') {
             select_prev_train(trains_head, &selected);
+        }
+        // Stage 3.2: Logic for printing the train sequence
+        if (command == 'P') {
+            print_all_train(trains_head, selected);
         }
         printf("Enter command: ");
     }
@@ -274,10 +284,10 @@ int check_same_ids(
     char c_id[ID_SIZE],
     char id[ID_SIZE]
 ) {
-    int diff_ids = 0;
+    int diff_ids = FALSE;
     for (int i = 0; i < ID_SIZE; i++) {
         if (c_id[i] != id[i]) {
-            diff_ids = 1;
+            diff_ids = TRUE;
         }
     }
     return diff_ids;
@@ -291,16 +301,16 @@ int carriage_error_check(
     enum carriage_type type
 ) {
     // originally has no errors
-    int has_error = 0;
+    int has_error = FALSE;
     
     // error check for correct type
     if (type == INVALID_TYPE) {
-        has_error = 1;
+        has_error = TRUE;
         printf("ERROR: Invalid carriage type\n");
     }
     // error check for valid capacity
     else if (capacity > 999 || capacity <= 0) {
-        has_error = 1;
+        has_error = TRUE;
         printf("ERROR: Capacity should be between 1 and 999\n");
     }
     // error check for overlapping ids
@@ -309,13 +319,13 @@ int carriage_error_check(
         struct carriage *temp = train;
         while (temp != NULL) {
             // Comparing each value to see if they are a different ID
-            // diff_ids stays 0 if they are not different IDs
+            // diff_ids stays FALSE if they are not different IDs
             // since it always fails the check
             int diff_ids = check_same_ids(temp->carriage_id, id);
 
             // printing the error message if they are not different IDs
             if (!diff_ids) {
-                has_error = 1;
+                has_error = TRUE;
                 printf("ERROR: a carriage with id: '%s' already exists in this train\n", 
                         id);
             }
@@ -367,7 +377,7 @@ void append_carriage(
 
 
 // Stage 1.4, prints the linked list of train 
-void print_train(
+void print_current_train(
     struct carriage *train
 ) {
     struct carriage *temp = train;
@@ -398,7 +408,7 @@ void insert_carriage(
     int has_error;
     // Error check just in case n is not valid
     if (carriage_pos < 0) {
-        has_error = 1;
+        has_error = TRUE;
         printf("ERROR: n must be at least 0\n");
     }
     // Error check just like append_carriages
@@ -462,15 +472,15 @@ void add_passenger(
     struct carriage *temp = train;
 
     // error check for a valid n value
-    int has_error = 0;
+    int has_error = FALSE;
     if (num_passengers <= 0) {
-        has_error = 1;
+        has_error = TRUE;
         printf("ERROR: n must be a positive integer\n");
     }
 
     // tracker to see if we have found the carriage with the id or not
     // used to create the logic for the olverflow
-    int carriage_found = 0;
+    int carriage_found = FALSE;
 
     while (temp != NULL && num_passengers != 0 && !has_error) {
         int diff_ids = check_same_ids(temp->carriage_id, id);
@@ -504,7 +514,7 @@ void add_passenger(
 
         // If the carriage with the id is first found, then add the passengers
         if (!diff_ids) {
-            carriage_found = 1;
+            carriage_found = TRUE;
             // if the carriage is already full, do nothing and go to the next carriage
             if (temp->capacity == temp->occupancy) {
                 // deliberately empty
@@ -532,7 +542,7 @@ void add_passenger(
         temp = temp->next;
     }
     // Error check for the carriage not being found
-    if (carriage_found == 0 && !has_error) {
+    if (!carriage_found && !has_error) {
         printf("ERROR: No carriage exists with id: '%s'\n", id);
     }
     // Case where all passengers could not be seated properly
@@ -559,9 +569,9 @@ void remove_passengers(
 
     
     // error check for a valid n value
-    int has_error = 0;
+    int has_error = FALSE;
     if (num_passengers <= 0) {
-        has_error = 1;
+        has_error = TRUE;
         printf("ERROR: n must be a positive integer\n");
     }
 
@@ -585,7 +595,7 @@ void remove_passengers(
                        temp->carriage_id
                 );
             }
-            carriage_found = 1;
+            carriage_found = TRUE;
         }
         temp = temp->next;
     }
@@ -636,11 +646,10 @@ void count_passengers(
     struct carriage *temp = train;
     
     // variable to check if the carriage is within the given range
-    // 0 if not, 1 if yes
-    int in_range = 0;
+    int in_range = FALSE;
     
     // variable to check if the start and end carriages are in the wrong order
-    int wrong_order = 0;
+    int wrong_order = FALSE;
 
     while (temp != NULL) {
         // checking if the current carriage is the end or the start carriage
@@ -649,7 +658,7 @@ void count_passengers(
 
         // if the start carriage is found
         if (!diff_start_ids) {
-            in_range = 1;
+            in_range = TRUE;
         }
         // the carriage is within the given range
         if (in_range) {
@@ -659,11 +668,11 @@ void count_passengers(
         // if the end carriage is found
         if (!diff_end_ids) {
             // if the end carriage is found before the start carriage
-            if (in_range == 0) {
-                wrong_order = 1;
+            if (!in_range) {
+                wrong_order = TRUE;
             }
             // close out end range so we dont read anymore values
-            in_range = 0;
+            in_range = FALSE;
         }
         temp = temp->next;
     }
@@ -674,7 +683,7 @@ void count_passengers(
         printf("ERROR: Carriages are in the wrong order\n");
     }
     // Case where the start carriage was not found
-    // Logic: if in range is 0, but nothing was added, then we know
+    // Logic: if in range is false, but nothing was added, then we know
     // that the start value was not found
     else if (!in_range && passengers == 0 && unoccupied == 0) {
         printf("ERROR: No carriage exists with id: '%s'\n", start_id);
@@ -709,16 +718,16 @@ void move_passengers(
     struct carriage *temp = train;
 
     // error check for a valid n value
-    int has_error = 0;
+    int has_error = FALSE;
     if (num_to_move <= 0) {
-        has_error = 1;
+        has_error = TRUE;
         printf("ERROR: n must be a positive integer\n");
     }
 
     // initialising variables to check if the source car or destination car
     // is found within the given linked list
-    int source_car_exists = 0;
-    int dest_car_exists = 0;
+    int source_car_exists = FALSE;
+    int dest_car_exists = FALSE;
 
     int seats_available = 0;
 
@@ -732,17 +741,17 @@ void move_passengers(
         if (!diff_source_ids) {
             // if the number of passengers to move is greater than occupancy
             if (num_to_move > temp->occupancy) {
-                has_error = 1;
+                has_error = TRUE;
                 printf("ERROR: Cannot remove %d passengers from %s\n",
                        num_to_move,
                        source_id);
             }
-            source_car_exists = 1;
+            source_car_exists = TRUE;
         }
 
         // if the destination carriage is found
         if (!diff_dest_ids) {
-            dest_car_exists = 1;
+            dest_car_exists = TRUE;
         }
 
         // counting the number of available seats from the destination car 
@@ -757,24 +766,24 @@ void move_passengers(
         printf("ERROR: No carriage exists with id: '%s'\n",
                source_id
         );
-        has_error = 1;
+        has_error = TRUE;
     }
     // error check if the destination car is not found
     if (!dest_car_exists && !has_error) {
         printf("ERROR: No carriage exists with id: '%s'\n",
                dest_id
         );
-        has_error = 1;
+        has_error = TRUE;
     }
     // error check if there are not enough seats for the passengers 
     if (num_to_move > seats_available && !has_error) {
         printf("ERROR: not enough space to move passengers\n");
-        has_error = 1;
+        has_error = TRUE;
     }
 
     temp = train;
     // variable used to see if it is in range to have passengers added
-    int in_range = 0;
+    int in_range = FALSE;
     // variable to keep track of the number of passengers we have left to add
     // so that we keep the num_to_move variable untouched
     int passengers_left_to_add = num_to_move;
@@ -789,7 +798,7 @@ void move_passengers(
         }
         // if the destination carriage is found, set in_range to 1 so we start adding
         if (!diff_dest_ids) {
-            in_range = 1;
+            in_range = TRUE;
         }
 
         if (in_range && passengers_left_to_add > 0) {
@@ -861,6 +870,7 @@ void create_train(
 void select_next_train(
     struct train **selected_ptr
 ) {  
+    // we need to deference the pinter so we can access the elements in the struct
     struct train *selected = *selected_ptr;
     // if there is no train after our selected one
     if (selected->next == NULL) {
@@ -881,6 +891,7 @@ void select_prev_train(
     if (trains_head == *selected) {
         // deliberately empty
     }
+    // if the selected train isnt first in the list, select the previous train
     else {
         struct train *temp = trains_head;
         while (temp != NULL) {
@@ -889,6 +900,53 @@ void select_prev_train(
             }
             temp = temp->next;
         }
+    }
+}
+
+// Stage 3.2, print all the trains and their corresponding values
+void print_all_train(
+    struct train *trains_head,
+    struct train *selected
+) {
+    // Initialising variables to store our information
+    int is_selected;
+    int n = 0;
+    int capacity;
+    int occupancy;
+    int num_carriages;
+
+    // Looping through each train in the linked list of trains
+    struct train *temp_train = trains_head;
+
+    while (temp_train != NULL) {
+        //  Checking if the train we are looking at is the selected train
+        if (temp_train == selected) {
+            is_selected = TRUE;
+        }
+        else {
+            is_selected = FALSE;
+        }
+        // Resetting the information for each train
+        capacity = 0;
+        occupancy = 0;
+        num_carriages = 0;
+
+        // Looping through each carriage of the current train
+        struct carriage *temp_carriage = temp_train->carriages;
+        while (temp_carriage != NULL) {
+            // Updating the info as we go through each carriage
+            capacity += temp_carriage->capacity;
+            occupancy += temp_carriage->occupancy;
+            num_carriages++;
+            
+            temp_carriage = temp_carriage->next;
+        }
+        // Once all the data is collected, print all the data
+        print_train_summary(is_selected,n, capacity, occupancy, num_carriages);
+        // move onto the next train
+        temp_train = temp_train->next;
+        // Adding 1 to the counter of the train position
+        n++;
     }
 }
 
