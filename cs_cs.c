@@ -49,10 +49,17 @@ struct carriage {
     struct carriage *next;
 };
 
-// TODO: Any additional structs you want to add can go here:
+// struct for the linked list of trains
+struct train {
+    struct carriage *carriages;
+    
+    int size;
+    
+    // Keeps a tracker of the tail of the list in order to save time
+    struct carriage *last_carriage;
 
-
-
+    struct train *next;
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////// PROVIDED FUNCTION PROTOTYPE  ////////////////////////////
@@ -138,28 +145,41 @@ void move_passengers(
     struct carriage *train 
 );
 
+void create_train(
+    struct train **trains_head,
+    struct train *selected
+);
+
+void select_next_train(
+    struct train **selected
+);
+
+void select_prev_train(
+    struct train *trains_head,
+    struct train **selected
+);
+
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-
-
-
-
 
 
 int main(void) {
     printf("Welcome to Carriage Simulator\n");
     printf("All aboard!\n");
 
-    // Initialises the head of the linked list, called train
-    struct carriage *train = NULL;
-    // Keeps a tracker of the tail of the list in order to save time
-    struct carriage *last_carriage = NULL;
-    // Keeps a track of the size of the linked list
-    int size = 0;
-    // initialises the command variable to store hte values for the command loop
-    char command;
-    printf("Enter command: ");
+    // new code
+    struct train *trains_head = malloc(sizeof(struct train));
+    trains_head->carriages = NULL;
+    trains_head->last_carriage = NULL;
+    trains_head->size = 0;
+    trains_head->next = 0;
 
+    struct train *selected = trains_head;
+
+    // initialises the command variable to store the values for the command loop
+    char command;
+
+    printf("Enter command: ");
     // Beginning the command loop
     while (scanf(" %c", &command) != EOF) {
         // Stage 1.2: Logic for the help command
@@ -168,38 +188,48 @@ int main(void) {
         }
         // Stage 1.3: Logic for appending a carriage to the train
         if (command == 'a') {
-            append_carriage(&train, &last_carriage, &size);
+            append_carriage(&selected->carriages, &selected->last_carriage, &selected->size);
         }
         // Stage 1.4: Logic for printing the whole train
         if (command == 'p') {
-            print_train(train);
+            print_train(selected->carriages);
         }
         // Stage 2.1: Logic for inserting carriages
         if (command == 'i') {
-            insert_carriage(&train, &last_carriage, &size);
+            insert_carriage(&selected->carriages, &selected->last_carriage, &selected->size);
         }
         // Stage 2.2: Logic for adding passengers
         if (command == 's') {
-            add_passenger(train);
+            add_passenger(selected->carriages);
         }
         // Stage 2.3: Logic for removing passengers
         if (command == 'd') {
-            remove_passengers(train);
+            remove_passengers(selected->carriages);
         }
         // Stage 2.4: Logic for counting all passengers
         if (command == 'T') {
-            count_all_passengers(train);
+            count_all_passengers(selected->carriages);
         }
-
         // Stage 2.4: Logic for counting passengers in a given range 
         if (command == 'c') {
-            count_passengers(train);
+            count_passengers(selected->carriages);
         }
         // Stage 2.5: Logic for moving passengers
         if (command == 'm') {
-            move_passengers(train);
+            move_passengers(selected->carriages);
         }
-
+        // Stage 3.1: Logic for creating a new train
+        if (command == 'N') {
+            create_train(&trains_head, selected);
+        }
+        // Stage 3.1: Logic for selecting the previous train
+        if (command == '>') {
+            select_next_train(&selected);
+        }
+        // Stage 3.1: Logic for selecting the next train
+        if (command == '<') {
+            select_prev_train(trains_head, &selected);
+        }
         printf("Enter command: ");
     }
 
@@ -794,6 +824,74 @@ void move_passengers(
         temp = temp->next;
     }
 }
+
+// 3.1, creates a new train 
+void create_train(
+    struct train **trains_head,
+    struct train *selected
+) {
+    // Creating an empty train
+    struct train *new_train = malloc(sizeof(struct train));
+    new_train->carriages = NULL;
+    new_train->last_carriage = NULL;
+    new_train->size = 0;
+
+    // if the selected train is the head of the train
+    // we need to insert before the head so we need to change the head
+    if (*trains_head == selected) {
+        new_train->next = selected;
+        *trains_head = new_train;
+    }
+    // if the selected train isnt at the head
+    // go through the list until we find the train pointing to our selected train
+    // then we insert it between the 2
+    else {
+        struct train *temp = *trains_head;
+        while (temp != NULL) {
+            if (temp->next == selected) {
+                temp->next = new_train;
+                new_train->next = selected;
+            }
+            temp = temp->next;
+        }
+    }
+}
+
+// Stage 3.1, Moves to the selected train to the next train
+void select_next_train(
+    struct train **selected_ptr
+) {  
+    struct train *selected = *selected_ptr;
+    // if there is no train after our selected one
+    if (selected->next == NULL) {
+        // deliberately empty
+    }
+    // if there is a next train, then make the next train the selected one
+    else {
+        *selected_ptr = selected->next;
+    }
+}
+
+// Stage 3.1, Moves to the selected train to the previous train
+void select_prev_train(
+    struct train *trains_head,
+    struct train **selected
+) {
+    // if the selected train is the first in the list, do nothing
+    if (trains_head == *selected) {
+        // deliberately empty
+    }
+    else {
+        struct train *temp = trains_head;
+        while (temp != NULL) {
+            if (temp->next == *selected) {
+                *selected = temp;
+            }
+            temp = temp->next;
+        }
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////  PROVIDED FUNCTIONS  ///////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
