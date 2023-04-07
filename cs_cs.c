@@ -165,6 +165,10 @@ void print_all_train(
     struct train *selected
 );
 
+void remove_carriage(
+    struct train *selected
+);
+
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -240,6 +244,11 @@ int main(void) {
         if (command == 'P') {
             print_all_train(trains_head, selected);
         }
+        // Stage 3.3: Removing a selected carriage
+        if (command == 'r') {
+            remove_carriage(selected);
+        }
+
         printf("Enter command: ");
     }
 
@@ -258,7 +267,7 @@ int main(void) {
 ////////////////////////////////////////////////////////////////////////////////
 
 
-// STAGE 1.1, creates an empty carraige that isnt linked to the linked list
+// STAGE 1.1, creates an empty carriage that isnt linked to the linked list
 struct carriage *create_carriage(
     char id[ID_SIZE], 
     enum carriage_type type,
@@ -362,9 +371,9 @@ void append_carriage(
             *train = new_carriage;
             *last_carriage = new_carriage;
         }
-        // if the list isnt empty, change the last carraige to point to the new carriage
+        // if the list isnt empty, change the last carriage to point to the new carriage
         // we dereference the last carriage pointer &
-        // change the next value then make last carraige the new carriage
+        // change the next value then make last carriage the new carriage
         else {
             struct carriage *temp = *last_carriage;
             temp->next = new_carriage;
@@ -950,13 +959,85 @@ void print_all_train(
     }
 }
 
+// Stage 3.3, remove a carraige with a given carriage id
+void remove_carriage(
+    struct train *selected
+) {
+    // this is the ugliest and most stupid code ive ever written in my life
+    // scanning in the carriage id
+    char id[6];
+    scan_id(id);
+
+    // Keeps track of the pointer of current carriage and the previous carriage
+    struct carriage *curr = selected->carriages;
+    struct carriage *prev = selected->carriages;
+
+    // Boolean to keep track if we found the carriage for error handling
+    int carriage_found = FALSE;
+
+
+    // Tracker for the carriage we need to remove
+    struct carriage *carriage_to_remove = NULL;
+
+    while (curr != NULL && !carriage_found) {
+        // A check to see if the ids of the current carraige matches the carriage we want to remove
+        // return false if the same, true if different
+        int diff_ids = check_same_ids(curr->carriage_id, id);
+
+        // if the current carriage is carriage we want to remove
+        if (!diff_ids) {
+            carriage_found = TRUE;
+
+            // if the current carriage tracker is the same as the previous carriage tracker
+            // we know we are on the first carriage and therefore only need to change the head
+            if (curr == prev) {
+                selected->carriages = curr->next;
+                carriage_to_remove = curr;
+            }
+            // if they are not the same, tnen we make the previous carriage point to the carriage
+            // that the current carriage points to
+            else {
+                struct carriage *next_carriage = curr->next;
+                prev->next = next_carriage;
+                carriage_to_remove = curr;
+            }
+
+            // if the last_carraige pointed to the carraige we want to remove
+            // change last carriage to point to the one before it
+            if (selected->last_carriage == curr) {
+                selected->last_carriage = prev;
+            }
+        }
+        // if the current carriage and the previous carriage is the same
+        // then let the current carriage go on but keep the previous carriage there
+        if (curr == prev) {
+            curr = curr->next;
+        }
+        // if the current carriage and the previous carriage is different
+        // then let both of them proceed
+        else {
+            prev = curr;
+            curr = curr->next;
+        }
+    }
+    // if there wasnt a carriage found, do an error check
+    if (!carriage_found) {
+        printf("ERROR: No carriage exists with id: '%s'\n", id);
+    }
+    // else free the carriage that we wanted to remove
+    else {
+        selected->size -= 1;
+        free(carriage_to_remove);
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////  PROVIDED FUNCTIONS  ///////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
 // Prints the Carriage simulator usage instructions,
-// displaying the different commands and their arguments.
-//
+// displaying the different commands and their arguments.a N1010 passenger 10
+
 void print_usage(void) {
     printf(
         "=====================[ Carriage Simulator ]=====================\n"
