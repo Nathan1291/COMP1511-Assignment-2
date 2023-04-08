@@ -169,6 +169,16 @@ void remove_carriage(
     struct train *selected
 );
 
+void remove_train(
+    struct train **trains_head,
+    struct train **selected
+);
+
+void free_all(
+    struct train **trains_head
+);
+
+
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -198,7 +208,9 @@ int main(void) {
         }
         // Stage 1.3: Logic for appending a carriage to the train
         if (command == 'a') {
-            append_carriage(&selected->carriages, &selected->last_carriage, &selected->size);
+            append_carriage(&selected->carriages, 
+                            &selected->last_carriage, 
+                            &selected->size);
         }
         // Stage 1.4: Logic for printing the whole train
         if (command == 'p') {
@@ -206,7 +218,9 @@ int main(void) {
         }
         // Stage 2.1: Logic for inserting carriages
         if (command == 'i') {
-            insert_carriage(&selected->carriages, &selected->last_carriage, &selected->size);
+            insert_carriage(&selected->carriages, 
+                            &selected->last_carriage, 
+                            &selected->size);
         }
         // Stage 2.2: Logic for adding passengers
         if (command == 's') {
@@ -248,10 +262,15 @@ int main(void) {
         if (command == 'r') {
             remove_carriage(selected);
         }
-
+        // Stage 3.4: Removing the selected train
+        if (command == 'R') {
+            remove_train(&trains_head, &selected);
+        }
         printf("Enter command: ");
     }
 
+    // frees all the memory that we have malloced
+    free_all(&trains_head);
     printf("\nGoodbye\n");
 
     return 0;
@@ -346,8 +365,8 @@ int carriage_error_check(
 
 // Stage 1.3, appends a new train at the end of the linked list
 void append_carriage(
-    struct carriage **train, 
-    struct carriage **last_carriage,
+    struct carriage **train_ptr, 
+    struct carriage **last_carriage_ptr,
     int *size
 ) {
     // scanning in all the required data
@@ -357,7 +376,7 @@ void append_carriage(
     int capacity;
     scanf("%d", &capacity);
 
-    int has_error = carriage_error_check(*train, carriage_id, capacity, type);
+    int has_error = carriage_error_check(*train_ptr, carriage_id, capacity, type);
 
     // if there is no errors, add the carriage onto the train
     if (!has_error) {
@@ -367,17 +386,17 @@ void append_carriage(
 
         // if the list is empty then make the head point to the new carriage
         // and make the end point to the new carriage as well
-        if (*train == NULL) {
-            *train = new_carriage;
-            *last_carriage = new_carriage;
+        if (*train_ptr == NULL) {
+            *train_ptr = new_carriage;
+            *last_carriage_ptr = new_carriage;
         }
         // if the list isnt empty, change the last carriage to point to the new carriage
         // we dereference the last carriage pointer &
         // change the next value then make last carriage the new carriage
         else {
-            struct carriage *temp = *last_carriage;
+            struct carriage *temp = *last_carriage_ptr;
             temp->next = new_carriage;
-            *last_carriage = new_carriage;
+            *last_carriage_ptr = new_carriage;
         }
         *size += 1;
         printf("Carriage: '%s' attached!\n", carriage_id);
@@ -401,8 +420,8 @@ void print_current_train(
 
 // Stage 2.1, inserting a carriage in the given integer position
 void insert_carriage(
-    struct carriage **train, 
-    struct carriage **last_carriage,
+    struct carriage **train_ptr, 
+    struct carriage **last_carriage_ptr,
     int *size
 ) {
     // Scanning all dependencies
@@ -422,7 +441,7 @@ void insert_carriage(
     }
     // Error check just like append_carriages
     else {
-        has_error = carriage_error_check(*train, carriage_id, capacity, type);
+        has_error = carriage_error_check(*train_ptr, carriage_id, capacity, type);
     }
     
     // if there is no errors, inser the carriage
@@ -431,28 +450,28 @@ void insert_carriage(
         struct carriage *new_carriage = create_carriage(carriage_id, type, capacity);
         // Case where there isnt a carriage existing
         if (*size == 0) {
-            *train = new_carriage;
-            *last_carriage = new_carriage;
+            *train_ptr = new_carriage;
+            *last_carriage_ptr = new_carriage;
             *size += 1;
         }
         // case where we insert it at the head
         else if (carriage_pos == 0) {
-            new_carriage->next = *train;
-            *train = new_carriage;
+            new_carriage->next = *train_ptr;
+            *train_ptr = new_carriage;
             *size += 1;
         }
         // Case where we need to append it to the end
         else if (carriage_pos >= *size) {
-            struct carriage *temp = *last_carriage;
+            struct carriage *temp = *last_carriage_ptr;
             if (temp == NULL) {
             }   
             temp->next = new_carriage;
-            *last_carriage = new_carriage;
+            *last_carriage_ptr = new_carriage;
             *size += 1;
         }
         // Case where we need to insert it to some position      
         else {
-            struct carriage *temp = *train;
+            struct carriage *temp = *train_ptr;
 
             for (int i = 0; i < carriage_pos-1; i++) {
                 temp = temp->next;
@@ -845,7 +864,7 @@ void move_passengers(
 
 // 3.1, creates a new train 
 void create_train(
-    struct train **trains_head,
+    struct train **trains_head_ptr,
     struct train *selected
 ) {
     // Creating an empty train
@@ -856,15 +875,15 @@ void create_train(
 
     // if the selected train is the head of the train
     // we need to insert before the head so we need to change the head
-    if (*trains_head == selected) {
+    if (*trains_head_ptr == selected) {
         new_train->next = selected;
-        *trains_head = new_train;
+        *trains_head_ptr = new_train;
     }
     // if the selected train isnt at the head
     // go through the list until we find the train pointing to our selected train
     // then we insert it between the 2
     else {
-        struct train *temp = *trains_head;
+        struct train *temp = *trains_head_ptr;
         while (temp != NULL) {
             if (temp->next == selected) {
                 temp->next = new_train;
@@ -893,16 +912,16 @@ void select_next_train(
 
 // Stage 3.1, Moves to the selected train to the previous train
 void select_prev_train(
-    struct train *trains_head,
+    struct train *trains_head_ptr,
     struct train **selected
 ) {
     // if the selected train is the first in the list, do nothing
-    if (trains_head == *selected) {
+    if (trains_head_ptr == *selected) {
         // deliberately empty
     }
     // if the selected train isnt first in the list, select the previous train
     else {
-        struct train *temp = trains_head;
+        struct train *temp = trains_head_ptr;
         while (temp != NULL) {
             if (temp->next == *selected) {
                 *selected = temp;
@@ -951,7 +970,7 @@ void print_all_train(
             temp_carriage = temp_carriage->next;
         }
         // Once all the data is collected, print all the data
-        print_train_summary(is_selected,n, capacity, occupancy, num_carriages);
+        print_train_summary(is_selected, n, capacity, occupancy, num_carriages);
         // move onto the next train
         temp_train = temp_train->next;
         // Adding 1 to the counter of the train position
@@ -963,7 +982,6 @@ void print_all_train(
 void remove_carriage(
     struct train *selected
 ) {
-    // this is the ugliest and most stupid code ive ever written in my life
     // scanning in the carriage id
     char id[6];
     scan_id(id);
@@ -980,7 +998,8 @@ void remove_carriage(
     struct carriage *carriage_to_remove = NULL;
 
     while (curr != NULL && !carriage_found) {
-        // A check to see if the ids of the current carraige matches the carriage we want to remove
+        // A check to see if the ids of the current carraige 
+        // matches the carriage we want to remove
         // return false if the same, true if different
         int diff_ids = check_same_ids(curr->carriage_id, id);
 
@@ -988,17 +1007,19 @@ void remove_carriage(
         if (!diff_ids) {
             carriage_found = TRUE;
 
-            // if the current carriage tracker is the same as the previous carriage tracker
-            // we know we are on the first carriage and therefore only need to change the head
+            // if the current carriage tracker is 
+            // the same as the previous carriage tracker
+            // we know we are on the first carriage 
+            // and therefore only need to change the head
             if (curr == prev) {
                 selected->carriages = curr->next;
                 carriage_to_remove = curr;
             }
-            // if they are not the same, tnen we make the previous carriage point to the carriage
+            // if they are not the same
+            // then we make the previous carriage point to the carriage
             // that the current carriage points to
             else {
-                struct carriage *next_carriage = curr->next;
-                prev->next = next_carriage;
+                prev->next = curr->next;
                 carriage_to_remove = curr;
             }
 
@@ -1028,6 +1049,117 @@ void remove_carriage(
     else {
         selected->size -= 1;
         free(carriage_to_remove);
+    }
+}
+
+// Stage 3.4, remove the selected train and select the train before it
+// if the train before it is a head, select the next train
+void remove_train(
+    struct train **trains_head_ptr,
+    struct train **selected_ptr
+) {
+    // initialising variables for later use
+    struct train *train_to_remove = NULL;
+
+    // creating variables so that we can remove 
+    struct train *curr = *trains_head_ptr;
+    struct train *prev = *trains_head_ptr;
+
+    int train_found = FALSE;
+    while (curr != NULL && !train_found) {
+        // if the current train is the train we want to remove
+        if (curr == *selected_ptr) {
+            train_found = TRUE;
+
+            // if the current train tracker is the 
+            // same as the previous train tracker
+            // we know we are on the first train 
+            // and therefore only need to change the head
+            if (curr == prev) {
+                // initialise this variable to we can access the next property
+                struct train *trains_head = *trains_head_ptr;
+                // Case where the only train in the linked list is the train head
+                if (trains_head->next == NULL) {
+                    // Creating a new empty train for trains_head to point to
+                    struct train *new_train = malloc(sizeof(struct train));
+                    new_train->carriages = NULL;
+                    new_train->last_carriage = NULL;
+                    new_train->size = 0;
+                    new_train->next = NULL;
+
+                    // making the trains_head and selected point to this new carriage
+                    *trains_head_ptr = new_train;
+                    *selected_ptr = *trains_head_ptr;
+                    // Preparing the train we removed to be freed
+                    train_to_remove = trains_head;
+                }
+                // Case where we need to remove the head but it points to another train
+                else {
+                    // Moving the head to point to the next carriage
+                    *trains_head_ptr = curr->next;
+                    *selected_ptr = *trains_head_ptr;
+                    // Preparing the train we removed to be freed
+                    train_to_remove = trains_head;
+                }
+            }
+            // if they are not the same, then we make the 
+            // previous carriage point to the carriage
+            // that the current carriage points to
+            else {
+                prev->next = curr->next;
+                *selected_ptr = prev;
+                train_to_remove = curr;
+            }
+        }
+
+        // if the current train and the previous train is the same
+        // then let the current train go on but keep the previous train there
+        if (curr == prev) {
+            curr = curr->next;
+        }
+        // if the current train and the previous train is different
+        // then let both of them proceed
+        else {
+            prev = curr;
+            curr = curr->next;
+        }
+    }
+
+    // removing the train that we have separated from the linked list
+    struct carriage *temp = train_to_remove->carriages;
+    struct carriage *carriage_to_remove = NULL;
+    while (temp != NULL) {
+        carriage_to_remove = temp;
+        temp = temp->next;
+        free(carriage_to_remove);
+    }
+    free(train_to_remove);
+}   
+
+// Stage 3.5: Function to free all of the memory that we have malloced
+void free_all(
+    struct train **trains_head
+) {
+    // creaing temporary train so that we can go through the linked list
+    struct train *temp_train = *trains_head;
+    // Creating a variable so that we can free it after we move onto the next train
+    struct train *train_to_free = NULL;
+
+    // Going through each train in the linked list
+    while (temp_train != NULL) {
+        train_to_free = temp_train;
+        // creates variables to prepare to free the carriages
+        struct carriage *temp_carriage = train_to_free->carriages;
+        struct carriage *carriage_to_free = NULL;
+        // freeing the carriage as we go
+        while (temp_carriage != NULL) {
+            carriage_to_free = temp_carriage;
+            temp_carriage = temp_carriage->next;
+            free(carriage_to_free);
+        }
+        temp_train = temp_train->next;
+        // freeing the train after every carriage has been freed
+        free(train_to_free);
     }
 }
 
