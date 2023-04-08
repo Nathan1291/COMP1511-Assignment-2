@@ -178,6 +178,10 @@ void free_all(
     struct train **trains_head
 );
 
+void merge_train(
+    struct train *selected
+);
+
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -265,6 +269,9 @@ int main(void) {
         // Stage 3.4: Removing the selected train
         if (command == 'R') {
             remove_train(&trains_head, &selected);
+        }
+        if (command == 'M') {
+            merge_train(selected);
         }
         printf("Enter command: ");
     }
@@ -1160,6 +1167,78 @@ void free_all(
         temp_train = temp_train->next;
         // freeing the train after every carriage has been freed
         free(train_to_free);
+    }
+}
+
+// Stage 4.1: Merge the current train with the next train
+// error handling: all i need to do is fix the capacity which apparently isnt working
+void merge_train(
+    struct train *selected
+) {
+    // Store the next train in a separate variable
+    struct train *next_train = selected->next;
+
+    // error handling in case there is no next train
+    int has_error = FALSE;
+    if (next_train == NULL) {
+        has_error = TRUE;
+    }
+    if (!has_error) {
+        // Make the selected train point to the train that the next train points to 
+        selected->next = next_train->next;
+
+
+        struct carriage *temp_selected = selected->carriages;
+        struct carriage *temp_next = next_train->carriages;
+
+        // assigning a variable in case we need to free the memory, 
+        // tracking the previous carriage
+        // we free the memory if there is an overlap in carriage id
+        // freeing the carriage in the next train, 
+        // and adding the values to the selected train
+        struct carriage *prev = temp_next;
+        
+        while (temp_next != NULL) {
+            temp_selected = selected->carriages;
+            // Boolean to track if a given carraige id 
+            // already exists in the selected train
+            int carriage_id_exists = FALSE;
+            while (temp_selected != NULL) {
+                int diff_ids = check_same_ids(temp_next->carriage_id, 
+                                              temp_selected->carriage_id);
+                // if a carraige with the same carriage_id is found
+                // then add all the passengers and occupancy to the selected train
+                if (!diff_ids) {
+                    carriage_id_exists = TRUE;
+                    temp_selected->capacity += temp_next->capacity;
+                    temp_selected->occupancy += temp_next->occupancy;
+                }
+                temp_selected = temp_selected->next;
+            }
+
+            // move the train on but keep a tracker of the previous 
+            // train so that we can do operations on it
+            prev = temp_next;
+            temp_next = temp_next->next;
+
+            // if carriage with the same id was not found
+            // add the carriage to the end of the selected train
+            if (!carriage_id_exists) {
+                prev->next = NULL;
+                selected->last_carriage->next = prev;
+                selected->last_carriage = prev;
+            }
+
+            // if we found a carriage with the same id, 
+            // we can free the memory attached to the 
+            // carriage in the next train
+            if (carriage_id_exists) {
+                free(prev);
+            }
+        }
+
+        // freeing the train pointer
+        free(next_train);
     }
 }
 
