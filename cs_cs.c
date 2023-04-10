@@ -182,6 +182,9 @@ void merge_train(
     struct train *selected
 );
 
+void split_train(
+    struct train *selected
+);
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -270,8 +273,13 @@ int main(void) {
         if (command == 'R') {
             remove_train(&trains_head, &selected);
         }
+        // Stage 4.1: Merge the next train with the current train
         if (command == 'M') {
             merge_train(selected);
+        }
+        // Stage 4.2: Splitting the train at given the given carriage ids
+        if (command == 'S') {
+            split_train(selected);
         }
         printf("Enter command: ");
     }
@@ -1119,17 +1127,9 @@ void remove_train(
             }
         }
 
-        // if the current train and the previous train is the same
-        // then let the current train go on but keep the previous train there
-        if (curr == prev) {
-            curr = curr->next;
-        }
-        // if the current train and the previous train is different
-        // then let both of them proceed
-        else {
-            prev = curr;
-            curr = curr->next;
-        }
+        // Move curr onto the next carriage but keep previous lagging behind by 1
+        prev = curr;
+        curr = curr->next;
     }
 
     // removing the train that we have separated from the linked list
@@ -1224,9 +1224,16 @@ void merge_train(
             // if carriage with the same id was not found
             // add the carriage to the end of the selected train
             if (!carriage_id_exists) {
-                prev->next = NULL;
-                selected->last_carriage->next = prev;
-                selected->last_carriage = prev;
+                if (selected->carriages == NULL) {
+                    prev->next = NULL;
+                    selected->carriages = prev;
+                    selected->last_carriage = prev;
+                }
+                else {
+                    prev->next = NULL;
+                    selected->last_carriage->next = prev;
+                    selected->last_carriage = prev;
+                }
             }
 
             // if we found a carriage with the same id, 
@@ -1241,6 +1248,109 @@ void merge_train(
         free(next_train);
     }
 }
+
+
+// Stage 4.2: Split the train off at the given carriage ids
+void split_train(
+    struct train *selected
+) {
+    // Scanning in all dependencies
+    int num_of_splits;
+    scanf("%d", &num_of_splits);
+    
+    // tracking the current train we should be splitting on
+    struct train *curr_train = selected;
+    // tracking the train that this train points to
+    struct train *next_train = curr_train->next;
+    // making the current train point to nothing
+    // so that we can manipulate the train easier,
+    // we will recconect at the end using next_train pointer
+    curr_train->next = NULL;
+    
+    // error handing if n is not a positive integer
+    if (num_of_splits <= 0) {
+        printf("ERROR: n must be a positive integer\n");
+    }
+
+    printf("Enter ids: \n");
+    // looping through each of the carriage ids
+    for (int i = 0; i < num_of_splits; i++) {
+        // Scanning in the given carriage id
+        char id[ID_SIZE];
+        scan_id(id);
+
+        // Starting from the first carriage
+        curr_train = selected;
+        int carriage_found = FALSE;
+        while (curr_train != NULL && !carriage_found) {
+            // keeping track of the current carrige and the previous carriage
+            // so that its easier to manipulate
+            struct carriage *curr_carriage = curr_train->carriages;
+            struct carriage *prev_carriage = curr_train->carriages;
+
+            // keeping a track of the size of the carraige
+            int size = 1;
+            
+            // going through each carraige of the given train
+            while (curr_carriage != NULL && !carriage_found) {
+                int diff_ids = check_same_ids(curr_carriage->carriage_id, id);
+
+                // if the carriage is found
+                if (!diff_ids) {
+                    carriage_found = TRUE;
+
+                    // Making a new train to branch this one off to
+                    // may need to implement a size function but i think should be fine 
+                    struct train *new_train = malloc(sizeof(struct train));
+                    new_train->carriages = curr_carriage;
+                    new_train->last_carriage = curr_train->last_carriage;
+                    new_train->size = curr_train->size - size;
+                    new_train->next = curr_train->next;
+
+                    // if the carriage is at the start of the train
+                    // clean the information of the current train
+                    if (curr_carriage == prev_carriage) {
+                        curr_train->size = 0;
+                        curr_train->carriages = NULL;
+                        curr_train->last_carriage = NULL;
+                        curr_train->next = new_train;
+                    }
+                    // if the carriage is not at the start
+                    // split the given carriage off and end the current train at the previous carriage
+                    else {
+                        curr_train->size = size;
+                        curr_train->last_carriage = prev_carriage;
+                        curr_train->next = new_train;
+                        prev_carriage->next = NULL;
+                    }
+                }
+                size++;
+                prev_carriage = curr_carriage;
+                curr_carriage = curr_carriage->next;
+            }
+            // going onto the next train in the sequence
+            curr_train = curr_train->next;
+        }
+        // error handling if the carriage is not found in any of the trains
+        if (!carriage_found) {
+            printf("No carriage exists with id: '%s'. Skipping\n", id);
+        }
+    }
+
+    // fixing the last train to point to the train that was originally next
+    // going through the trains until we reach the end and recconnect it to the original train linked list
+    curr_train = selected;
+    int completed = FALSE;
+    while (curr_train != NULL && !completed) {
+        if (curr_train->next == NULL) {
+            curr_train->next = next_train;
+            completed = TRUE;
+        }
+        curr_train = curr_train->next;
+    }
+}
+
+
 
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////  PROVIDED FUNCTIONS  ///////////////////////////////
